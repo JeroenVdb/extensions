@@ -1,4 +1,4 @@
-import { ActionPanel, Color, ImageMask, List, OpenInBrowserAction, showToast, ToastStyle } from "@raycast/api";
+import { ActionPanel, Color, ImageMask, List, OpenInBrowserAction, showToast, ToastStyle, getLocalStorageItem, setLocalStorageItem } from "@raycast/api";
 import useSWR, { SWRConfig } from "swr";
 import { Schema } from "bitbucket";
 
@@ -7,6 +7,9 @@ import { Repository } from "./interface";
 import { icon } from "../../helpers/icon";
 import { cacheConfig, REPOSITORIES_CACHE_KEY } from "../../helpers/cache";
 import { ShowPipelinesActions } from "./actions";
+import { useEffect, useState } from "react";
+
+const RECENTS_CACHE_KEY = 'RECENTS3';
 
 export function SearchRepositories() {
   return (
@@ -16,8 +19,34 @@ export function SearchRepositories() {
   );
 }
 
+async function setMostRecent(str: string) {
+  let resp = await getLocalStorageItem(RECENTS_CACHE_KEY);
+  if (resp) {
+    resp = JSON.parse(resp)
+    resp.push(str)
+    await setLocalStorageItem(RECENTS_CACHE_KEY, JSON.stringify(resp))
+  } else {
+    await setLocalStorageItem(RECENTS_CACHE_KEY, JSON.stringify([str]))
+  }
+}
+
 function SearchList(): JSX.Element {
+  const [recentRepos, setRecentRepos] = useState([])
   const { data, error, isValidating } = useSWR(REPOSITORIES_CACHE_KEY, getRepositories);
+
+  useEffect(() => {
+    async function fetchMostRecent() {
+      let resp = await getLocalStorageItem(RECENTS_CACHE_KEY);
+      console.log(resp)
+      console.log(typeof resp)
+      if (resp) {
+        resp = JSON.parse(resp)
+        setRecentRepos(resp)
+      }
+    }
+
+    fetchMostRecent()
+  }, []);
 
   if (error) {
     showToast(ToastStyle.Failure, "Failed loading repositories", error.message);
@@ -25,7 +54,12 @@ function SearchList(): JSX.Element {
 
   return (
     <List isLoading={isValidating} searchBarPlaceholder="Search by name...">
-      <List.Section title="Repositories" subtitle={data?.length.toString()}>
+      <List.Section title="Recently Used Repositories" subtitle={recentRepos?.length.toString()}>
+        {recentRepos?.map((repo: Repository) => (
+          <SearchListItem key={repo.uuid} repo={repo} />
+        ))}
+      </List.Section>
+      <List.Section title="Repositories" subtitle={data?.length.toString() + ' ' + recentRepos?.length}>
         {data?.map(toRepository).map((repo: Repository) => (
           <SearchListItem key={repo.uuid} repo={repo} />
         ))}
@@ -59,6 +93,7 @@ function SearchListItem({ repo }: { repo: Repository }): JSX.Element {
               title="Open Repository in Browser"
               url={repo.url}
               icon={{ source: icon.code, tintColor: Color.PrimaryText }}
+              onOpen={ () => { setMostRecent(repo) } }
             />
             <OpenInBrowserAction
               title="Open Branches in Browser"
