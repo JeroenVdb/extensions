@@ -6,10 +6,12 @@ import { getRepositories } from "../../queries";
 import { Repository } from "./interface";
 import { icon } from "../../helpers/icon";
 import { cacheConfig, REPOSITORIES_CACHE_KEY } from "../../helpers/cache";
+import { MostRecent } from "../../queries/mostRecent"
 import { ShowPipelinesActions } from "./actions";
 import { useEffect, useState } from "react";
 
 const RECENTS_CACHE_KEY = 'RECENTS3';
+const mostRecentRepositories = new MostRecent(RECENTS_CACHE_KEY)
 
 export function SearchRepositories() {
   return (
@@ -19,47 +21,26 @@ export function SearchRepositories() {
   );
 }
 
-async function setMostRecent(str: string) {
-  let resp = await getLocalStorageItem(RECENTS_CACHE_KEY);
-  if (resp) {
-    resp = JSON.parse(resp)
-    resp.push(str)
-    await setLocalStorageItem(RECENTS_CACHE_KEY, JSON.stringify(resp))
-  } else {
-    await setLocalStorageItem(RECENTS_CACHE_KEY, JSON.stringify([str]))
-  }
-}
-
 function SearchList(): JSX.Element {
-  const [recentRepos, setRecentRepos] = useState([])
   const { data, error, isValidating } = useSWR(REPOSITORIES_CACHE_KEY, getRepositories);
-
-  useEffect(() => {
-    async function fetchMostRecent() {
-      let resp = await getLocalStorageItem(RECENTS_CACHE_KEY);
-      console.log(resp)
-      console.log(typeof resp)
-      if (resp) {
-        resp = JSON.parse(resp)
-        setRecentRepos(resp)
-      }
-    }
-
-    fetchMostRecent()
-  }, []);
+  const { data: mostRecentData, error: mostRecentError, isValidating: isValidatingMostRecent } = useSWR(RECENTS_CACHE_KEY, mostRecentRepositories.getMostRecent);
 
   if (error) {
     showToast(ToastStyle.Failure, "Failed loading repositories", error.message);
   }
 
+  if (mostRecentError) {
+    showToast(ToastStyle.Failure, "Failed loading most recently used repositories", mostRecentError.message);
+  }
+
   return (
-    <List isLoading={isValidating} searchBarPlaceholder="Search by name...">
-      <List.Section title="Recently Used Repositories" subtitle={recentRepos?.length.toString()}>
-        {recentRepos?.map((repo: Repository) => (
+    <List isLoading={isValidating || isValidatingMostRecent} searchBarPlaceholder="Search by name...">
+      <List.Section title="Recently Used Repositories" subtitle={mostRecentData?.length.toString()}>
+        {mostRecentData?.map((repo: Repository) => (
           <SearchListItem key={repo.uuid} repo={repo} />
         ))}
       </List.Section>
-      <List.Section title="Repositories" subtitle={data?.length.toString() + ' ' + recentRepos?.length}>
+      <List.Section title="Repositories" subtitle={data?.length.toString()}>
         {data?.map(toRepository).map((repo: Repository) => (
           <SearchListItem key={repo.uuid} repo={repo} />
         ))}
@@ -92,23 +73,26 @@ function SearchListItem({ repo }: { repo: Repository }): JSX.Element {
             <OpenInBrowserAction
               title="Open Repository in Browser"
               url={repo.url}
+              onOpen={ () => { mostRecentRepositories.addMostRecent(repo) } }
               icon={{ source: icon.code, tintColor: Color.PrimaryText }}
-              onOpen={ () => { setMostRecent(repo) } }
             />
             <OpenInBrowserAction
               title="Open Branches in Browser"
               url={repo.url + "/branches"}
+              onOpen={ () => { mostRecentRepositories.addMostRecent(repo) } }
               icon={{ source: icon.branch, tintColor: Color.PrimaryText }}
             />
             <OpenInBrowserAction
               title="Open Pull Requests in Browser"
               url={repo.url + "/pull-requests"}
+              onOpen={ () => { mostRecentRepositories.addMostRecent(repo) } }
               icon={{ source: icon.pr, tintColor: Color.PrimaryText }}
               shortcut={{ modifiers: ["cmd"], key: "." }}
             />
             <OpenInBrowserAction
               title="Open Pipelines in Browser"
               url={repo.url + "/addon/pipelines/home"}
+              onOpen={ () => { mostRecentRepositories.addMostRecent(repo) } }
               icon={{ source: icon.pipeline.self, tintColor: Color.PrimaryText }}
             />
           </ActionPanel.Section>
