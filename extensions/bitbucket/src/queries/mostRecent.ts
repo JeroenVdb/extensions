@@ -1,5 +1,6 @@
 import { getLocalStorageItem, setLocalStorageItem, removeLocalStorageItem } from "@raycast/api";
 import { Repository } from "../components/repository/interface";
+import { preferences } from "../helpers/preferences";
 
 export class MostRecent {
   mostRecentCacheKey: string;
@@ -24,7 +25,7 @@ export class MostRecent {
     }
 
     mostRecents = JSON.parse(mostRecentsDataItem);
-    mostRecents = this.trimMostRecents(mostRecents, 5);
+    mostRecents = this.trimMostRecents(mostRecents, parseInt(preferences.mostRecentAmount, 10));
     mostRecents = this.removeDuplicates(mostRecents);
 
     return mostRecents;

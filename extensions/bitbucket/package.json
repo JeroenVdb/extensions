@@ -49,6 +49,14 @@
       "default": "",
       "description": "Bitbucket App password",
       "placeholder": "bXlzZWNyZXRhcGlrZXkqwd"
+    },
+    {
+      "name": "mostRecentAmount",
+      "type": "textfield",
+      "title": "Most recent amount",
+      "required": false,
+      "default": "5",
+      "description": "Amount of most recent repositories to show (0 to hide)"
     }
   ],
   "dependencies": {
