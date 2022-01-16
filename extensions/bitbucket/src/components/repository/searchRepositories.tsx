@@ -1,16 +1,14 @@
-import { ActionPanel, Color, ImageMask, List, OpenInBrowserAction, showToast, ToastStyle, getLocalStorageItem, setLocalStorageItem } from "@raycast/api";
+import { ActionPanel, Color, ImageMask, List, OpenInBrowserAction, showToast, ToastStyle } from "@raycast/api";
 import useSWR, { SWRConfig } from "swr";
 import { Schema } from "bitbucket";
 
 import { getRepositories } from "../../queries";
 import { Repository } from "./interface";
 import { icon } from "../../helpers/icon";
-import { cacheConfig, REPOSITORIES_CACHE_KEY } from "../../helpers/cache";
+import { cacheConfig, RECENTS_CACHE_KEY, REPOSITORIES_CACHE_KEY } from "../../helpers/cache";
 import { MostRecent } from "../../queries/mostRecent"
 import { ShowPipelinesActions } from "./actions";
-import { useEffect, useState } from "react";
 
-const RECENTS_CACHE_KEY = 'RECENTS3';
 const mostRecentRepositories = new MostRecent(RECENTS_CACHE_KEY)
 
 export function SearchRepositories() {

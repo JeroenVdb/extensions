@@ -36,3 +36,4 @@ export const cacheConfig = {
 };
 
 export const REPOSITORIES_CACHE_KEY = "repositories";
+export const RECENTS_CACHE_KEY = "mostrecents";
